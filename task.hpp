@@ -96,6 +96,8 @@ namespace bknv {
     class safe_task: public task
     {
     public:
+      using lock_type = std::unique_lock<std::mutex>;
+
       template <class Function>
       safe_task(std::mutex& mutex, const Function& fun, size_t priority = 0u):
         task{fun, priority},
@@ -111,7 +113,10 @@ namespace bknv {
         if (this == &other)
           return *this;
 
-        std::lock_guard<std::mutex> lock{mutex};
+        lock_type lock1{mutex, std::defer_lock};
+        lock_type lock2{other.mutex, std::defer_lock};
+        lock_if_not_same(lock1, lock2);
+
         task::operator=(other);
         return *this;
       }
@@ -121,24 +126,40 @@ namespace bknv {
         if (this == &other)
           return *this;
 
-        std::lock_guard<std::mutex> lock{mutex};
+        lock_type lock1{mutex, std::defer_lock};
+        lock_type lock2{other.mutex, std::defer_lock};
+        lock_if_not_same(lock1, lock2);
+
         task::operator=(std::move(other));
         return *this;
       }
 
       void operator()()
       {
-        std::lock_guard<std::mutex> lock{mutex};
+        lock_type lock{mutex};
         task::operator()();
       }
 
       void operator()() const
       {
-        std::lock_guard<std::mutex> lock{mutex};
+        lock_type lock{mutex};
         task::operator()();
       }
 
     private:
+      static void lock_if_not_same(lock_type& lock1, lock_type& lock2)
+      {
+        if (lock1.mutex() == lock2.mutex())
+        {
+          lock1.lock();
+          lock2.release();
+        }
+        else
+        {
+          std::lock(lock1, lock2);
+        }
+      }
+
       std::mutex& mutex;
     };
 
