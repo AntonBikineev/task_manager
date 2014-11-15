@@ -4,6 +4,7 @@
 #include <queue>
 #include <memory>
 #include <type_traits>
+#include <initializer_list>
 
 #include <mutex>
 #include <condition_variable>
@@ -21,6 +22,14 @@ namespace bknv {
     {
     public:
       task_manager() = default;
+      task_manager(std::initializer_list<Task> list)
+      {
+        std::lock_guard<std::mutex> lock{mutex};
+        std::for_each(std::begin(list), std::end(list), [this](const Task& task)
+        {
+          queue.push(task);
+        });
+      }
 
       void push(const Task& task)
       {
