@@ -20,7 +20,6 @@ namespace bknv {
     class task_manager
     {
     public:
-      typedef Compare p;
       task_manager() = default;
 
       void push(const Task& task)
