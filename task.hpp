@@ -11,7 +11,7 @@ namespace bknv {
     {
     public:
       template <class Function>
-      task(const Function& f, size_t priority):
+      task(const Function& f, size_t priority = 0u):
         p{priority},
         function(std::make_unique<derived_erased<Function>>(f))
       {
@@ -44,6 +44,11 @@ namespace bknv {
       }
 
       void operator()()
+      {
+        function->call();
+      }
+
+      void operator()() const
       {
         function->call();
       }
