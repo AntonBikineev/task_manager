@@ -111,6 +111,7 @@ namespace bknv {
         if (this == &other)
           return *this;
 
+        std::lock_guard<std::mutex> lock{mutex};
         task::operator=(other);
         return *this;
       }
@@ -120,6 +121,7 @@ namespace bknv {
         if (this == &other)
           return *this;
 
+        std::lock_guard<std::mutex> lock{mutex};
         task::operator=(std::move(other));
         return *this;
       }
