@@ -13,7 +13,8 @@
 int main()
 {
   using namespace bknv;
-  task_manager<task> a;
+  task_manager<safe_task> tm;
+  std::mutex mutex;
 
   std::thread{[&]
   {
@@ -23,9 +24,9 @@ int main()
     std::generate(std::begin(threads), std::end(threads), [&]
     {
       ++i;
-      return std::thread{[&a, i]
+      return std::thread{[&tm, &mutex, i]
       {
-          a.push(task{[i]
+          tm.push(safe_task{mutex, [i]
           {
             std::cout << "task with priority: " << i << std::endl;
           },
@@ -45,13 +46,10 @@ int main()
 
     std::generate(std::begin(threads), std::end(threads), [&]
     {
-      return std::thread([&]
+      return std::thread{[&]
       {
-        auto task = a.pop();
-        static std::mutex mutex;
-        std::lock_guard<std::mutex>lock{mutex};
-        task();
-      });
+        tm.pop()();
+      }};
     });
 
     std::for_each(std::begin(threads), std::end(threads), [&](std::thread& thr)
@@ -59,4 +57,5 @@ int main()
       thr.join();
     });
   }}.join();
+
 }

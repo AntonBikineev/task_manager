@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include <mutex>
+
 namespace bknv {
 
   inline namespace v1 {
@@ -90,6 +92,53 @@ namespace bknv {
     {
       return a.priority() < b.priority();
     }
+
+    class safe_task: public task
+    {
+    public:
+      template <class Function>
+      safe_task(std::mutex& mutex, const Function& fun, size_t priority = 0u):
+        task{fun, priority},
+        mutex{mutex}
+      {
+      }
+
+      safe_task(const safe_task&) = default;
+      safe_task(safe_task&&) = default;
+
+      safe_task& operator=(const safe_task& other)
+      {
+        if (this == &other)
+          return *this;
+
+        task::operator=(other);
+        return *this;
+      }
+
+      safe_task& operator=(safe_task&& other)
+      {
+        if (this == &other)
+          return *this;
+
+        task::operator=(std::move(other));
+        return *this;
+      }
+
+      void operator()()
+      {
+        std::lock_guard<std::mutex> lock{mutex};
+        task::operator()();
+      }
+
+      void operator()() const
+      {
+        std::lock_guard<std::mutex> lock{mutex};
+        task::operator()();
+      }
+
+    private:
+      std::mutex& mutex;
+    };
 
   }
 
